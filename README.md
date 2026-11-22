@@ -87,6 +87,13 @@ continuous 8-bit I/Q at up to 20 MS/s over high-speed USB or 40 MS/s over
 Gigabit Ethernet, for [SoapyESPSDR](https://github.com/ESPARGOS/SoapyESPSDR).
 See [s31-streaming.md](docs/s31-streaming.md).
 
+**LilyGO T-Internet-COM** (separate `esp32lilygo` firmware, experimental):
+snapshot spectra via an Ethernet browser viewer, and the burst protocol over
+TCP. The board's internally generated Ethernet clock may be unstable while
+the Wi-Fi PHY is active; hardware validation is required. See
+[lilygo-ethernet.md](docs/lilygo-ethernet.md) and the
+[board-specific web flasher](web/README.md).
+
 ![Gqrx displaying an LTE signal at 2.63 GHz, continuously sampled at 40 MSa/s over Ethernet with an ESP32-S31 and SoapyESPSDR.](docs/gqrx-esp-sdr.png)
 
 ## Talking to the firmware

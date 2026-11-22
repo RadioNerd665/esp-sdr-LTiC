@@ -24,7 +24,12 @@ static bool burst_common_command(char *line) {
     if (!strcmp(line, "TRANSPORT?")) {
         char answer[64];
         snprintf(answer, sizeof(answer), "TRANSPORT %s %u\n",
-                 burst_serial_port() == BURST_SERIAL_UART ? "UART" : "USB", burst_serial_baud());
+                 burst_serial_port() == BURST_SERIAL_UART ? "UART" :
+#if CONFIG_ESP_SDR_LILYGO
+                 burst_serial_port() == BURST_SERIAL_TCP ? "TCP" :
+                 burst_serial_port() == BURST_SERIAL_HTTP ? "HTTP" :
+#endif
+                 "USB", burst_serial_baud());
         reply(answer);
     } else if (sscanf(line, "SYNC %" SCNu64 " %c", &nonce, &extra) == 1) {
         char answer[48];

@@ -23,6 +23,12 @@ static uint64_t excluded_pins(void) {
      * The SDK reservation mask below also covers remapped memory pins. */
 #if CONFIG_IDF_TARGET_ESP32
     uint64_t mask = PINS(6, 11) | PINS(16, 17);
+#if CONFIG_ESP_SDR_LILYGO
+    /* Board RMII, PHY control, SD card and modem/expansion connections. */
+    mask |= PIN(0) | PIN(2) | PIN(4) | PIN(5) | PIN(12) | PIN(13) | PIN(14) | PIN(15) |
+            PIN(18) | PIN(19) | PIN(21) | PIN(22) | PIN(23) | PIN(25) | PIN(26) | PIN(27) |
+            PIN(32) | PIN(33);
+#endif
 #elif CONFIG_IDF_TARGET_ESP32C2 || CONFIG_IDF_TARGET_ESP32C3
     uint64_t mask = PINS(11, 17);
 #elif CONFIG_IDF_TARGET_ESP32C5

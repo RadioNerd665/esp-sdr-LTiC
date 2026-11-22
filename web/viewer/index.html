@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ethernet snapshot SDR</title>
+  <link rel="stylesheet" href="viewer.css">
+  <script defer src="spectrum.js"></script>
+  <script defer src="viewer.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Ethernet snapshot SDR</h1>
+    <p>Each row is a separate RF snapshot, not continuous reception. Black separators mark capture gaps; vertical spacing is not elapsed time.</p>
+    <form id="controls">
+      <label>Center frequency (MHz)
+        <input id="frequency" type="number" min="100" max="6000" step="1" value="2412" required>
+      </label>
+      <label>Sample rate
+        <select id="rate"><option value="0">80 MS/s</option><option value="1">40 MS/s</option><option value="6">16 MS/s</option></select>
+      </label>
+      <label>FFT bins
+        <select id="bins"><option>256</option><option selected>512</option><option>1024</option><option>2048</option></select>
+      </label>
+      <label>Pause between requests (ms)
+        <input id="interval" type="number" min="500" max="5000" step="100" value="1000" required>
+      </label>
+      <button id="start" type="submit">Start snapshots</button>
+      <button id="stop" type="button" disabled>Stop</button>
+    </form>
+    <p id="status" role="status" aria-live="polite">Stopped. Configure the receiver and start.</p>
+    <p>Relative power: code / 2 dB, <strong>uncalibrated</strong>; not dBm or dBFS. Code 0 is a quantized floor and 255 is clipped. Frequency labels are nominal; the receiver may suppress energy near the center (DC).</p>
+    <section aria-label="Spectrum">
+      <h2>Spectrum</h2>
+      <canvas id="spectrum" width="1024" height="260" aria-label="Latest snapshot spectrum"></canvas>
+      <div class="axis"><span id="low">—</span><span id="center">—</span><span id="high">—</span></div>
+    </section>
+    <section aria-label="Waterfall">
+      <h2>Snapshot waterfall <small>(newest at top)</small></h2>
+      <canvas id="waterfall" width="1024" height="400" aria-label="Snapshot waterfall with black gap separators"></canvas>
+    </section>
+    <details>
+      <summary>Connection and safety</summary>
+      <p>Connect the LilyGO T-Internet-COM running compatible Ethernet snapshot firmware to a trusted LAN and open <code>http://DEVICE_IP/</code> directly. The firmware must embed and serve the four viewer files at the root and provide its snapshot API at the same origin.</p>
+      <p>The viewer sends <code>X-ESP-SDR: 1</code>. The device API requires that header, rejects mismatched Origin and does not allow cross-origin requests. Do not expose the device to untrusted networks; it provides neither authentication nor encryption. HTTPS pages cannot fetch an HTTP device because of mixed-content restrictions.</p>
+      <p>Requests tune the receiver and use its exclusive capture lease. Other UART or TCP clients may make it busy. Stop snapshots before using other clients. These are intermittent snapshots, not streaming I/Q or a calibrated instrument.</p>
+    </details>
+  </main>
+</body>
+</html>

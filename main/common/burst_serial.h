@@ -3,7 +3,13 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-typedef enum { BURST_SERIAL_USB, BURST_SERIAL_UART, BURST_SERIAL_COUNT } burst_serial_port_t;
+typedef enum {
+    BURST_SERIAL_USB, BURST_SERIAL_UART,
+#if CONFIG_ESP_SDR_LILYGO
+    BURST_SERIAL_TCP, BURST_SERIAL_HTTP,
+#endif
+    BURST_SERIAL_COUNT
+} burst_serial_port_t;
 
 void burst_serial_init(void);
 /* 1: complete line, -1: overlong line, 0: idle. Each port has its own parser.

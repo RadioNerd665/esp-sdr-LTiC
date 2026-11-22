@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LilyGO T-Internet-COM firmware installer</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {"imports": {"pako": "./node_modules/pako/dist/pako.esm.mjs", "atob-lite": "./atob-lite.mjs"}}
+  </script>
+  <script type="module" src="app.mjs"></script>
+</head>
+<body>
+  <main>
+    <h1>LilyGO T-Internet-COM installer</h1>
+    <p>Experimental: install the <strong>esp32lilygo</strong> firmware on an ESP32 T-Internet-COM over USB serial. Hardware validation is still required.</p>
+    <p>Use Chrome or Edge with Web Serial on localhost or HTTPS. Connect the board with a data-capable USB cable and close other serial applications.</p>
+    <p class="warning">Flashing erases the sectors occupied by the images, including any data stored there. Use only on the intended board. Do not disconnect during writing. Secure Boot and flash-encrypted devices are not supported.</p>
+    <p id="artifact">Loading firmware manifest…</p>
+    <button id="flash" type="button" disabled>Choose serial port and flash</button>
+    <progress id="progress" max="100" value="0" aria-label="Current image progress"></progress>
+    <p id="status" role="status" aria-live="polite">Preparing…</p>
+    <details><summary>Flashing log</summary><pre id="log"></pre></details>
+    <p>If connection fails, hold BOOT while connecting or resetting, check the cable and serial permissions, then try again.</p>
+  </main>
+</body>
+</html>

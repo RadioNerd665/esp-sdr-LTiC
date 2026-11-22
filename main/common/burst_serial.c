@@ -1,4 +1,5 @@
 /* The burst protocol is shared by native USB Serial/JTAG and UART0. */
+#include "sdkconfig.h"
 #include "burst_serial.h"
 #include "burst_gpio.h"
 #include <stdint.h>
@@ -15,6 +16,9 @@
 #include "hal/usb_serial_jtag_ll.h"
 #endif
 #include "sdkconfig.h"
+#if CONFIG_ESP_SDR_LILYGO
+#include "lilygo_network.h"
+#endif
 #if CONFIG_IDF_TARGET_ESP32S2
 #include "esp_private/usb_console.h"
 #endif
@@ -106,6 +110,10 @@ unsigned burst_serial_baud(void) {
 }
 
 static int read_port(burst_serial_port_t port, void *buffer, size_t size) {
+#if CONFIG_ESP_SDR_LILYGO
+    if (port == BURST_SERIAL_TCP) return lilygo_tcp_read(buffer, size);
+    if (port == BURST_SERIAL_HTTP) return 0;
+#endif
     if (port == BURST_SERIAL_UART) {
 #if CONFIG_ESP_SDR_UART_ENABLED
         return uart_read_bytes(UART_NUM_0, buffer, size, 0);
@@ -123,18 +131,27 @@ static int read_port(burst_serial_port_t port, void *buffer, size_t size) {
 }
 
 bool burst_serial_stop_requested(void) {
+#if CONFIG_ESP_SDR_LILYGO
+    if (active_port == BURST_SERIAL_HTTP) return lilygo_snapshot_done();
+#endif
     char c;
     bool stopped = false;
     for (unsigned j = 0; j < 128 && read_port(active_port, &c, 1) == 1; j++) {
         stopped = true;
         if (c == '\n') break;
     }
+#if CONFIG_ESP_SDR_LILYGO
+    if (active_port == BURST_SERIAL_TCP && !lilygo_tcp_connected()) stopped = true;
+#endif
     return stopped;
 }
 
 int burst_serial_poll_line(char *line, size_t capacity) {
     for (unsigned j = 0; j < BURST_SERIAL_COUNT; ++j) {
         unsigned port = (next_port + j) % BURST_SERIAL_COUNT;
+#if CONFIG_ESP_SDR_LILYGO
+        if (port == BURST_SERIAL_HTTP) continue;
+#endif
         int64_t now = esp_timer_get_time();
         if (now - input[port].last_byte > 3000000) {
             input[port].used = 0;
@@ -163,7 +180,6 @@ int burst_serial_poll_line(char *line, size_t capacity) {
             if (overflow || used >= capacity) return -1;
             memcpy(line, input[port].line, used);
             line[used] = '\0';
-            if (baud_command(line)) return 0;
             return 1;
         }
     }
@@ -182,6 +198,13 @@ static int64_t transfer_deadline(size_t size) {
  * This doubles throughput over 64-byte writes; larger chunks gain nothing. */
 #define S2_USB_CHUNK 256
 size_t burst_serial_try_send(const void *data, size_t size) {
+#if CONFIG_ESP_SDR_LILYGO
+    if (active_port == BURST_SERIAL_HTTP) return lilygo_snapshot_write(data, size);
+    if (active_port == BURST_SERIAL_TCP) {
+        int sent = lilygo_tcp_write(data, size);
+        return sent > 0 ? (size_t)sent : 0;
+    }
+#endif
     const uint8_t *p = data;
     size_t done = 0;
     while (done < size) {
@@ -204,6 +227,9 @@ size_t burst_serial_try_send(const void *data, size_t size) {
 }
 
 bool IRAM_ATTR burst_serial_send(const void *data, size_t size) {
+#if CONFIG_ESP_SDR_LILYGO
+    if (active_port == BURST_SERIAL_HTTP) return lilygo_snapshot_write(data, size) == size;
+#endif
     const uint8_t *p = data;
     size_t original = size;
     int64_t deadline = transfer_deadline(size);
@@ -214,7 +240,15 @@ bool IRAM_ATTR burst_serial_send(const void *data, size_t size) {
             sent = uart_tx_chars(UART_NUM_0, (const char *)p, size > 128 ? 128 : size);
             if (sent < 0) return false;
             if (!sent) vTaskDelay(1);
-        } else {
+        }
+#if CONFIG_ESP_SDR_LILYGO
+        else if (active_port == BURST_SERIAL_TCP) {
+            sent = lilygo_tcp_write(p, size);
+            if (sent < 0) return false;
+            if (!sent) vTaskDelay(1);
+        }
+#endif
+        else {
 #if SOC_USB_SERIAL_JTAG_SUPPORTED
             if (!usb_serial_jtag_ll_txfifo_writable()) continue;
             sent = usb_serial_jtag_ll_write_txfifo(p, size > 64 ? 64 : size);
@@ -251,8 +285,28 @@ void burst_serial_serve(void (*handle)(char *line)) {
     char line[128];
     int owner = -1;
     int64_t lease_deadline = 0;
+#if CONFIG_ESP_SDR_LILYGO
+    unsigned generation = 0;
+#endif
     for (;;) {
+#if CONFIG_ESP_SDR_LILYGO
+        lilygo_tcp_poll();
+        unsigned current_generation = lilygo_tcp_generation();
+        if (current_generation != generation) {
+            generation = current_generation;
+            memset(&input[BURST_SERIAL_TCP], 0, sizeof(input[BURST_SERIAL_TCP]));
+            if (owner == BURST_SERIAL_TCP) owner = -1;
+        }
+#endif
         if (esp_timer_get_time() >= lease_deadline) owner = -1;
+#if CONFIG_ESP_SDR_LILYGO
+        lilygo_snapshot_t *request = lilygo_snapshot_take();
+        if (request) {
+            active_port = BURST_SERIAL_HTTP;
+            lilygo_snapshot_run(request, handle, owner >= 0);
+            continue;
+        }
+#endif
         int status = burst_serial_poll_line(line, sizeof(line));
         if (!status) {
             vTaskDelay(1);
@@ -271,7 +325,7 @@ void burst_serial_serve(void (*handle)(char *line)) {
         if (!strcmp(line, "RELEASE")) {
             serve_reply("OK\n");
             owner = -1;
-        } else {
+        } else if (!baud_command(line)) {
             handle(line);
         }
         /* Ownership covers the entire binary transaction. */

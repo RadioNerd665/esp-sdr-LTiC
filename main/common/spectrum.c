@@ -87,6 +87,8 @@ static void capabilities(void) {
     send_text("SPECINFO {\"continuous\":false,\"transports\":["
 #if CONFIG_IDF_TARGET_ESP32C2
               "\"UART\""
+#elif CONFIG_ESP_SDR_LILYGO
+              "\"UART\",\"TCP\",\"HTTP\""
 #else
               "\"USB\",\"UART\""
 #endif

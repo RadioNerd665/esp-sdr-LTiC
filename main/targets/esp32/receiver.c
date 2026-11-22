@@ -28,6 +28,9 @@
 #include "soc/dport_reg.h"
 #include "soc/dport_access.h"
 #include "heap_memory_layout.h"
+#if CONFIG_ESP_SDR_LILYGO
+#include "lilygo_network.h"
+#endif
 
 /* Reserve both SRAM banks, including their instruction aliases. Mode 2 only
  * exposes 32 KiB to MAC; mode 3 exposes the entire 64 KiB capture aperture. */
@@ -211,6 +214,9 @@ static bool capture(unsigned n, unsigned rate, unsigned format) {
 
 static void command(char *line) {
     if (burst_version_command(line)) return;
+#if CONFIG_ESP_SDR_LILYGO
+    if (lilygo_network_command(line)) return;
+#endif
     if (burst_gpio_command(line)) return;
 #ifdef RING_PROBE
     if (ring_probe_command(line)) return;
@@ -277,5 +283,8 @@ void app_main(void) {
     REG_CLR_BIT(RX_GAIN, BIT(23)); /* Hardware AGC is the default. */
     fflush(stdout);
     burst_serial_init();
+#if CONFIG_ESP_SDR_LILYGO
+    lilygo_network_init();
+#endif
     burst_serial_serve(command);
 }

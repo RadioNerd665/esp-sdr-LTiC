@@ -45,6 +45,7 @@ def main():
     if profile['preview']:
         command.append('--preview')
     command += ['-C', str(ROOT), '-B', str(build), '-DIDF_TARGET=' + profile['target'],
+                '-DESP_SDR_PROFILE=' + profile['id'],
                 '-DSDKCONFIG=' + str(build / 'sdkconfig'),
                 '-DSDKCONFIG_DEFAULTS=' + str(ROOT / profile.get('sdkconfig', 'sdkconfig.defaults.' + profile['target'])),
                 '-DESP_SDR_STREAMING=' + ('ON' if profile.get('streaming') else 'OFF')]

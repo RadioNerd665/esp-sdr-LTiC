@@ -19,6 +19,13 @@ endif()
 set(receiver "${target_dir}/receiver.c")
 set(sources "common/burst_serial.c" "common/burst_gpio.c" "common/burst_version.c" "common/spectrum_stats.c" "common/rx_recalibration.c" "common/rx_calibration_state.c")
 set(dependencies esp_driver_gpio esp_hw_support esp_phy esp_wifi nvs_flash esp_timer esp_driver_uart esp-dsp)
+if(IDF_TARGET STREQUAL "esp32")
+    # IDF expands component requirements before Kconfig is available.
+    list(APPEND dependencies esp_eth esp_netif esp_http_server lwip)
+endif()
+if(CONFIG_ESP_SDR_LILYGO)
+    list(APPEND sources "targets/esp32/lilygo_network.c")
+endif()
 option(RING_PROBE "Build bounded experimental ring diagnostics (never package)" OFF)
 if(IDF_TARGET STREQUAL "esp32c61" OR IDF_TARGET STREQUAL "esp32c6")
     list(APPEND sources "common/ring_capture.c")
@@ -70,13 +77,24 @@ idf_component_register(SRCS "${receiver}" ${sources}
     PRIV_INCLUDE_DIRS "common" ${target_includes} "diagnostics"
     REQUIRES ${dependencies})
 
+if(CONFIG_ESP_SDR_LILYGO)
+    foreach(asset index.html viewer.css spectrum.js viewer.js)
+        target_add_binary_data(${COMPONENT_LIB} "${PROJECT_DIR}/web/viewer/${asset}" TEXT)
+    endforeach()
+endif()
+
 # Regenerate at build time (not only CMake configure time). The embedded record
 # is also the artifact exporter's source of revision and UTC build time.
 idf_build_get_property(version_python PYTHON)
 set(version_header "${CMAKE_CURRENT_BINARY_DIR}/generated/build_version.h")
+if(ESP_SDR_PROFILE)
+    set(version_profile "${ESP_SDR_PROFILE}")
+else()
+    set(version_profile "${IDF_TARGET}")
+endif()
 add_custom_target(esp_sdr_build_version
     COMMAND "${version_python}" "${PROJECT_DIR}/tools/generate_version.py"
-        --root "${PROJECT_DIR}" --profile "${IDF_TARGET}" --output "${version_header}"
+        --root "${PROJECT_DIR}" --profile "${version_profile}" --output "${version_header}"
     BYPRODUCTS "${version_header}"
     VERBATIM)
 add_dependencies(${COMPONENT_LIB} esp_sdr_build_version)

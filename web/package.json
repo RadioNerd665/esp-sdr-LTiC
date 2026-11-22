@@ -1,0 +1,14 @@
+{
+  "name": "esp-sdr-lilygo-web-flasher",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "atob-lite": "2.0.0",
+    "esptool-js": "0.7.1",
+    "pako": "2.1.0"
+  },
+  "scripts": {
+    "test": "node --test core.test.mjs"
+  }
+}
