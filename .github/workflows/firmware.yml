@@ -103,3 +103,48 @@ jobs:
           path: firmware/
           if-no-files-found: error
           retention-days: 90
+
+  pages:
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+    needs: bundle
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out ESP-WebSDR
+        uses: actions/checkout@v4
+        with:
+          repository: ESPARGOS/esp-web-sdr
+          ref: 6995ed78915a034be54be68abf986d608d7624c4
+          path: viewer
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test viewer
+        working-directory: viewer
+        run: node --test tests/*.test.mjs
+      - name: Download this build's firmware
+        uses: actions/download-artifact@v4
+        with:
+          name: esp-sdr-firmware
+          path: site/firmware
+      - name: Assemble site
+        run: |
+          set -euo pipefail
+          cp viewer/*.html viewer/*.js viewer/*.css viewer/*.svg viewer/favicon-*.png site/
+          cp -R viewer/flasher site/flasher
+          cp viewer/LICENSE site/VIEWER-LICENSE
+          test -s site/firmware/manifest.json
+          (cd site && zip -qr firmware.zip firmware)
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

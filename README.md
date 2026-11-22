@@ -2,7 +2,7 @@
 
 <img src="docs/espargos-logo.png" width="40%" align="right" alt="ESPARGOS logo">
 
-### Try it yourself: [Project overview](https://espargos.net/espsdr/) · [Browser SDR viewer](https://espargos.net/espsdr/app/) · [Browser firmware installer](https://espargos.net/espsdr/app/flash.html)
+### Try it yourself: [Browser SDR viewer](https://radionerd665.github.io/esp-sdr-LTiC/) · [Browser firmware installer](https://radionerd665.github.io/esp-sdr-LTiC/flash.html) · [Firmware downloads](https://radionerd665.github.io/esp-sdr-LTiC/firmware.zip)
 
 ESP-SDR turns the Wi-Fi/Bluetooth radio of an ordinary ESP32 board into a
 receive-only software-defined radio. The firmware captures raw I/Q samples from
@@ -23,8 +23,21 @@ have been too much work.
 
 ## Quick start
 
-1. Flash the firmware from the [browser installer](https://espargos.net/espsdr/app/flash.html).
-2. Open the [browser viewer](https://espargos.net/espsdr/app/) and connect.
+1. Connect the board using a USB data cable and close any serial monitor.
+2. Flash the firmware from the [browser installer](https://radionerd665.github.io/esp-sdr-LTiC/flash.html).
+3. Open the [browser viewer](https://radionerd665.github.io/esp-sdr-LTiC/) and connect.
+
+Use a browser with WebSerial or WebUSB support, such as Chrome or Edge. The
+[firmware archive](https://radionerd665.github.io/esp-sdr-LTiC/firmware.zip)
+also contains each chip's `.bin` files, flash arguments and a manifest with
+checksums. Run a profile's `flash_command.txt` from the extracted archive
+root, replacing `PORT` with the board's serial port.
+
+The site uses [ESP-WebSDR](https://github.com/ESPARGOS/esp-web-sdr) and firmware
+built from this repository's `main` branch. Its first deployment requires
+GitHub Actions to be enabled and **Settings → Pages → Source** set to
+**GitHub Actions**. Run the **Build firmware** workflow on `main` to publish;
+subsequent successful builds on `main` update the site.
 
 For continuous streaming into Gqrx, GNU Radio and friends, use an ESP32-S31
 with [SoapyESPSDR](https://github.com/ESPARGOS/SoapyESPSDR), or an ESP32-S3 with
